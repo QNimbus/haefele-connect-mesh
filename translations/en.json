@@ -1,0 +1,30 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Connect to Häfele Cloud",
+                "description": "Please enter your Häfele Connect Mesh API token",
+                "data": {
+                    "api_token": "API Token"
+                }
+            },
+            "network": {
+                "title": "Select Network",
+                "description": "Select which Häfele Connect Mesh network to add",
+                "data": {
+                    "network_id": "Network"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Failed to connect to Häfele Cloud",
+            "invalid_auth": "Invalid API token",
+            "no_networks_found": "No networks found in your Häfele account",
+            "network_not_found": "Selected network was not found",
+            "unknown": "Unexpected error occurred"
+        },
+        "abort": {
+            "already_configured": "This Häfele network is already configured"
+        }
+    }
+}

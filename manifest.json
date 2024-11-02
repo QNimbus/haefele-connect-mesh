@@ -1,0 +1,10 @@
+{
+  "domain": "haefele_connect_mesh",
+  "name": "Häfele Connect Mesh",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/haefele_connect_mesh",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "version": "0.1.0"
+}
