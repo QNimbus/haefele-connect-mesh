@@ -2,7 +2,7 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
-![Häfele Connect Mesh](./logo/icon.png)
+![Häfele Connect Mesh](./custom_components/haefele_connect_mesh/logo/icon.png)
 
 A Home Assistant custom integration for Häfele Connect Mesh devices. This integration allows you to control Häfele smart devices through Home Assistant.
 
