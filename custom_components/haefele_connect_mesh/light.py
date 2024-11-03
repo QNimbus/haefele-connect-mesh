@@ -17,7 +17,6 @@ from homeassistant.components.light import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -114,16 +113,6 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
             self._attr_color_mode = ColorMode.BRIGHTNESS
             self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
 
-        # Device info for device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, device.id)},
-            name=device.name,
-            manufacturer="Häfele",
-            model=device.type.value.split(".")[-1].capitalize(),  # Extract model type
-            sw_version=device.bootloader_version,
-            via_device=(DOMAIN, entry_id),
-        )
-
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         _LOGGER.debug(
@@ -134,6 +123,18 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
             self.brightness,
         )
         super()._handle_coordinator_update()
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._device.id)},
+            name=self._device.name,
+            manufacturer="Häfele",
+            model=self._device.type.value.split(".")[-1].capitalize(),
+            sw_version=self._device.bootloader_version,
+            via_device=(DOMAIN, self._entry_id),
+        )
 
     @property
     def available(self) -> bool:
