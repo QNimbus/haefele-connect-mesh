@@ -1,9 +1,11 @@
 {
   "domain": "haefele_connect_mesh",
   "name": "Häfele Connect Mesh",
-  "codeowners": [],
+  "codeowners": ["@qnimbus"],
   "config_flow": true,
-  "documentation": "https://www.home-assistant.io/integrations/haefele_connect_mesh",
+  "issue_tracker": "https://github.com/qnimbus/haefele_connect_mesh/issues",
+  "documentation": "https://github.com/qnimbus/haefele_connect_mesh",
+  "integration_type": "hub",
   "iot_class": "cloud_polling",
   "requirements": [],
   "version": "1.0.0"
