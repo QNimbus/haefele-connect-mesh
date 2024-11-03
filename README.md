@@ -67,6 +67,10 @@ Feel free to contribute to this project if you have access to other Häfele devi
 
 If you find any bugs or have feature requests, please create an issue in this repository.
 
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
 ## Disclaimer
 
 This integration is not officially affiliated with or endorsed by Häfele. Use at your own risk.
