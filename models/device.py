@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 from ..exceptions import ValidationError
-from datetime import datetime
+from datetime import datetime, UTC
 
 
 @dataclass
@@ -102,7 +102,7 @@ class Device:
         self._unique_id = unique_id
         self._device_key = device_key
         self._elements = elements
-        self._last_updated = datetime.utcnow()
+        self._last_updated = datetime.now(UTC)
 
     @property
     def network_id(self) -> str:
@@ -166,7 +166,7 @@ class Device:
 
     def update_timestamp(self) -> None:
         """Update the last_updated timestamp to current time."""
-        self._last_updated = datetime.utcnow()
+        self._last_updated = datetime.now(UTC)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Device":

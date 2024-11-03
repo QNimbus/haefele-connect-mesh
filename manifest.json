@@ -6,5 +6,5 @@
   "documentation": "https://www.home-assistant.io/integrations/haefele_connect_mesh",
   "iot_class": "cloud_polling",
   "requirements": [],
-  "version": "0.1.0"
+  "version": "1.0.0"
 }

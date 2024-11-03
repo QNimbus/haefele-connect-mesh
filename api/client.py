@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 from ..utils.retry import retry_with_backoff
 from ..utils.rate_limit import rate_limit
 from ..exceptions import HafeleAPIError
-from ..api.endpoints import BASE_URL, Endpoints
+from .endpoints import BASE_URL, Endpoints
 from ..models.network import Network
 from ..models.device import Device
 from ..exceptions import ValidationError
@@ -125,11 +125,11 @@ class HafeleClient:
 
         try:
             response = await self._get(
-                Endpoints.NETWORKS, timeout=60
+                Endpoints.NETWORKS.value, timeout=60
             )  # Custom timeout for this request
             networks_data = await response.json()
 
-            logger.info("Successfully fetched network data")
+            logger.debug("Successfully fetched network data")
             logger.debug("Network response data: %s", networks_data)
 
             # Convert to list if single dict is returned
@@ -181,7 +181,7 @@ class HafeleClient:
 
             network_data = recursive_json_decode(network_data)
 
-            logger.info("Successfully fetched network data for ID: %s", network_id)
+            logger.debug("Successfully fetched network data for ID: %s", network_id)
             logger.debug(
                 "Network response data (truncated): %s",
                 {k: (v if k != "network" else "...") for k, v in network_data.items()},
@@ -204,12 +204,12 @@ class HafeleClient:
             AuthenticationError: If API key is invalid.
             ValidationError: If device data is invalid.
         """
-        logger.debug("Fetching devices from endpoint: %s", Endpoints.DEVICES)
+        logger.debug("Fetching devices from endpoint: %s", Endpoints.DEVICES.value)
 
         try:
-            response = await self._get(Endpoints.DEVICES)
+            response = await self._get(Endpoints.DEVICES.value)
             devices_data = await response.json()
-            logger.info("Successfully fetched devices data")
+            logger.debug("Successfully fetched devices data")
             logger.debug("Devices response data: %s", devices_data)
 
             # Convert to list if single dict is returned
@@ -228,6 +228,32 @@ class HafeleClient:
         except HafeleAPIError:
             # Re-raise since _get already handles proper error wrapping
             raise
+
+    async def get_devices_for_network(self, network_id: str) -> List[Device]:
+        """Fetch all devices belonging to a specific network.
+
+        Args:
+            network_id: The ID of the network to fetch devices for
+
+        Returns:
+            List of Device model instances belonging to the specified network.
+
+        Raises:
+            HafeleAPIError: If the API request fails.
+            AuthenticationError: If API key is invalid.
+            ValidationError: If device data is invalid.
+        """
+        logger.debug("Fetching devices for network: %s", network_id)
+
+        devices = await self.get_devices()
+        network_devices = [
+            device for device in devices if device.network_id == network_id
+        ]
+
+        logger.debug(
+            "Found %d devices for network %s", len(network_devices), network_id
+        )
+        return network_devices
 
     async def get_device_details(self, device_id: str) -> Device:
         """Fetch detailed information about a specific device.
@@ -249,7 +275,7 @@ class HafeleClient:
         try:
             response = await self._get(endpoint)
             device_data = await response.json()
-            logger.info("Successfully fetched device data for ID: %s", device_id)
+            logger.debug("Successfully fetched device data for ID: %s", device_id)
             logger.debug("Device response data: %s", device_data)
 
             # Convert response data to Device model
@@ -316,7 +342,7 @@ class HafeleClient:
             response = await self._get(endpoint)
             status_data = await response.json()
 
-            logger.info("Successfully fetched status for device: %s", device_id)
+            logger.debug("Successfully fetched status for device: %s", device_id)
             logger.debug("Device status data: %s", status_data)
 
             # Validate that we received a proper status response
@@ -401,7 +427,7 @@ class HafeleClient:
             }
 
             response = await self._put(
-                Endpoints.DEVICE_POWER,
+                Endpoints.DEVICE_POWER.value,
                 json=payload,
                 timeout=timeout_ms / 1000 + 1,  # Convert to seconds and add buffer
             )
@@ -409,7 +435,7 @@ class HafeleClient:
             # Update device timestamp
             device.update_timestamp()
 
-            logger.info(
+            logger.debug(
                 "Successfully set power state to %s for device %s",
                 "on" if power else "off",
                 device.name,
@@ -508,7 +534,9 @@ class HafeleClient:
             }
 
             response = await self._put(
-                Endpoints.DEVICE_LIGHTNESS, json=payload, timeout=timeout_ms / 1000 + 1
+                Endpoints.DEVICE_LIGHTNESS.value,
+                json=payload,
+                timeout=timeout_ms / 1000 + 1,
             )
 
             response_data = await response.json()
@@ -520,7 +548,7 @@ class HafeleClient:
 
             device.update_timestamp()
 
-            logger.info(
+            logger.debug(
                 "Successfully set lightness to %.2f for device %s",
                 lightness,
                 device.name,

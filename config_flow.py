@@ -48,7 +48,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     "id": network.id,
                     "name": network.name,
-                    "device_count": len(network.get_devices([])),
+                    "device_count": len(
+                        await client.get_devices_for_network(network.id)
+                    ),
                 }
                 for network in networks
             ]
