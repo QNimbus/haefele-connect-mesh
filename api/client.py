@@ -586,8 +586,10 @@ class HafeleClient:
             ValidationError: If device data is invalid or device is not a light
             ValueError: If temperature is out of range
         """
-        if not device.is_light:
-            raise ValidationError(f"Device {device.name} is not a light")
+        if not device.supports_color_temp:
+            raise ValidationError(
+                f"Device {device.name} does not support color temperature"
+            )
 
         if not 0 <= temperature <= 65535:
             raise ValueError(
@@ -634,6 +636,93 @@ class HafeleClient:
         except HafeleAPIError as e:
             logger.error(
                 "Failed to set temperature for device %s (ID: %s). Status: %s, Error: %s",
+                device.name,
+                device.id,
+                e.status_code,
+                e.error_code,
+            )
+            raise
+
+    async def set_hsl(
+        self,
+        device: Device,
+        hue: float,
+        saturation: float,
+        lightness: float = None,
+        acknowledged: bool = True,
+        retries: int = 0,
+        timeout_ms: int = 10000,
+    ) -> None:
+        """Set the HSL values of a light device.
+
+        Args:
+            device: Device instance to control
+            hue: Hue value (0-360)
+            saturation: Saturation value (0-1)
+            lightness: Lightness value (0-1)
+            acknowledged: Whether to wait for acknowledgment (default: True)
+            retries: Number of mesh-level retries (default: 0)
+            timeout_ms: Mesh operation timeout in milliseconds (default: 10000)
+
+        Raises:
+            HafeleAPIError: If the API request fails
+            ValidationError: If device data is invalid or device is not a light
+            ValueError: If HSL values are out of range
+        """
+        if not device.supports_hsl:
+            raise ValidationError(f"Device {device.name} does not support HSL color")
+
+        # Validate HSL values
+        if not 0 <= hue <= 360:
+            raise ValueError(f"Hue must be between 0 and 360, got {hue}")
+        if not 0 <= saturation <= 1:
+            raise ValueError(f"Saturation must be between 0 and 1, got {saturation}")
+        if not 0 <= lightness <= 1:
+            raise ValueError(f"Lightness must be between 0 and 1, got {lightness}")
+
+        logger.debug(
+            "Setting HSL for device %s (ID: %s) to H:%.1f S:%.2f L:%.2f",
+            device.name,
+            device.id,
+            hue,
+            saturation,
+            lightness,
+        )
+
+        try:
+            payload = {
+                "hue": hue,
+                "saturation": saturation,
+                "lightness": lightness,
+                "uniqueId": device.id,
+                "acknowledged": acknowledged,
+                "retries": retries,
+                "timeout_ms": timeout_ms,
+            }
+
+            response = await self._put(
+                Endpoints.DEVICE_HSL.value,
+                json=payload,
+                timeout=timeout_ms / 1000 + 1,
+            )
+
+            response_data = await response.json()
+            if not response_data.get("success", False):
+                error = response_data.get("error", "UNKNOWN_ERROR")
+                raise HafeleAPIError(
+                    message=f"Failed to set HSL values: {error}", error_code=error
+                )
+
+            device.update_timestamp()
+
+            logger.debug(
+                "Successfully set HSL values for device %s",
+                device.name,
+            )
+
+        except HafeleAPIError as e:
+            logger.error(
+                "Failed to set HSL for device %s (ID: %s). Status: %s, Error: %s",
                 device.name,
                 device.id,
                 e.status_code,

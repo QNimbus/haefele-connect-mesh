@@ -11,6 +11,7 @@ import math
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP,
+    ATTR_HS_COLOR,
     ColorMode,
     LightEntity,
 )
@@ -246,6 +247,21 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
                 except HafeleAPIError as ex:
                     raise HomeAssistantError(
                         f"Failed to set color temperature for {self.name}: {ex}"
+                    ) from ex
+
+            if ATTR_HS_COLOR in kwargs and self._device.supports_hsl:
+                try:
+                    hue, saturation = kwargs[ATTR_HS_COLOR]
+                    await self.coordinator.client.set_hsl(self._device, hue, saturation)
+                    new_state["hue"] = hue
+                    new_state["saturation"] = saturation
+                except ValueError as ex:
+                    raise ServiceValidationError(
+                        f"Invalid HS color values for {self.name}: {ex}"
+                    ) from ex
+                except HafeleAPIError as ex:
+                    raise HomeAssistantError(
+                        f"Failed to set HS color for {self.name}: {ex}"
                     ) from ex
 
             try:
