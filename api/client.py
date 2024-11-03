@@ -564,6 +564,83 @@ class HafeleClient:
             )
             raise
 
+    async def set_temperature(
+        self,
+        device: Device,
+        temperature: int,
+        acknowledged: bool = True,
+        retries: int = 0,
+        timeout_ms: int = 10000,
+    ) -> None:
+        """Set the color temperature of a light device.
+
+        Args:
+            device: Device instance to control
+            temperature: Color temperature value (0-65535)
+            acknowledged: Whether to wait for acknowledgment (default: True)
+            retries: Number of mesh-level retries (default: 0)
+            timeout_ms: Mesh operation timeout in milliseconds (default: 10000)
+
+        Raises:
+            HafeleAPIError: If the API request fails
+            ValidationError: If device data is invalid or device is not a light
+            ValueError: If temperature is out of range
+        """
+        if not device.is_light:
+            raise ValidationError(f"Device {device.name} is not a light")
+
+        if not 0 <= temperature <= 65535:
+            raise ValueError(
+                f"Temperature must be between 0 and 65535, got {temperature}"
+            )
+
+        logger.debug(
+            "Setting temperature for device %s (ID: %s) to %d",
+            device.name,
+            device.id,
+            temperature,
+        )
+
+        try:
+            payload = {
+                "temperature": temperature,
+                "uniqueId": device.id,
+                "acknowledged": acknowledged,
+                "retries": retries,
+                "timeout_ms": timeout_ms,
+            }
+
+            response = await self._put(
+                Endpoints.DEVICE_TEMPERATURE.value,
+                json=payload,
+                timeout=timeout_ms / 1000 + 1,
+            )
+
+            response_data = await response.json()
+            if not response_data.get("success", False):
+                error = response_data.get("error", "UNKNOWN_ERROR")
+                raise HafeleAPIError(
+                    message=f"Failed to set temperature: {error}", error_code=error
+                )
+
+            device.update_timestamp()
+
+            logger.debug(
+                "Successfully set temperature to %d for device %s",
+                temperature,
+                device.name,
+            )
+
+        except HafeleAPIError as e:
+            logger.error(
+                "Failed to set temperature for device %s (ID: %s). Status: %s, Error: %s",
+                device.name,
+                device.id,
+                e.status_code,
+                e.error_code,
+            )
+            raise
+
     @staticmethod
     def brightness_to_api(brightness: int) -> float:
         """Convert 0-255 brightness value to 0-1 API scale.
@@ -669,3 +746,42 @@ class HafeleClient:
                 f"Mesh value must be between 0 and 65535, got {mesh_value}"
             )
         return mesh_value / 65535
+
+    @staticmethod
+    def mesh_to_mireds(mesh_value: int) -> int:
+        """Convert 0-65535 mesh value to mireds (color temperature).
+
+        Args:
+            mesh_value: Mesh temperature value (0-65535)
+
+        Returns:
+            Integer mireds value
+
+        Raises:
+            ValueError: If mesh_value is out of range
+        """
+        if not 0 <= mesh_value <= 65535:
+            raise ValueError(
+                f"Mesh value must be between 0 and 65535, got {mesh_value}"
+            )
+        # Convert to mireds (typical range 153-500)
+        # You may need to adjust these values based on your device's capabilities
+        return round(153 + (mesh_value / 65535) * (500 - 153))
+
+    @staticmethod
+    def mireds_to_mesh(mireds: int) -> int:
+        """Convert mireds to 0-65535 mesh scale.
+
+        Args:
+            mireds: Color temperature in mireds (typically 153-500)
+
+        Returns:
+            Integer mesh value (0-65535)
+
+        Raises:
+            ValueError: If mireds is out of range
+        """
+        if not 153 <= mireds <= 500:
+            raise ValueError(f"Mireds must be between 153 and 500, got {mireds}")
+        # Convert from mireds to mesh value
+        return round(((mireds - 153) / (500 - 153)) * 65535)

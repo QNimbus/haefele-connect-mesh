@@ -6,9 +6,11 @@ import logging
 from typing import Any
 from datetime import datetime, UTC
 import json
+import math
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
+    ATTR_COLOR_TEMP,
     ColorMode,
     LightEntity,
 )
@@ -19,8 +21,26 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.util.color import (
+    value_to_brightness,
+    brightness_to_value,
+    color_temperature_kelvin_to_mired,
+    color_temperature_mired_to_kelvin,
+)
+from homeassistant.util.percentage import percentage_to_ranged_value
 
-from .const import DOMAIN, NAME
+from .const import (
+    DOMAIN,
+    NAME,
+    BRIGHTNESS_SCALE_PERCENTAGE,
+    BRIGHTNESS_SCALE_MESH,
+    BRIGHTNESS_SCALE_HA,
+    MIN_KELVIN,
+    MAX_KELVIN,
+    MIN_MIREDS,
+    MAX_MIREDS,
+)
 from .api.client import HafeleClient, HafeleAPIError
 from .coordinator import HafeleUpdateCoordinator
 from .models.device import Device as HafeleDevice
@@ -65,8 +85,6 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
     """Representation of a Häfele Connect Mesh Light."""
 
     _attr_has_entity_name = True
-    _attr_color_mode = ColorMode.BRIGHTNESS
-    _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
     _attr_name = None
 
     def __init__(
@@ -81,16 +99,28 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
         self._device = device
         self._entry_id = entry_id
         self._attr_unique_id = f"{device.id}_light"
-        self._attr_name = "Light"
+
+        # Set color modes based on device capabilities
+        if device.supports_hsl:
+            self._attr_color_mode = ColorMode.HS
+            self._attr_supported_color_modes = {ColorMode.HS}
+        elif device.supports_color_temp:
+            self._attr_color_mode = ColorMode.COLOR_TEMP
+            self._attr_supported_color_modes = {ColorMode.COLOR_TEMP}
+            self._attr_min_mireds = MIN_MIREDS  # Adjust if needed
+            self._attr_max_mireds = MAX_MIREDS  # Adjust if needed
+        else:
+            self._attr_color_mode = ColorMode.BRIGHTNESS
+            self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
 
         # Device info for device registry
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, device.id)},
             name=device.name,
             manufacturer="Häfele",
-            model=device.type.split(".")[-1].capitalize(),  # Extract model type
+            model=device.type.value.split(".")[-1].capitalize(),  # Extract model type
             sw_version=device.bootloader_version,
-            via_device=(DOMAIN, entry_id),  # Connect to the network controller
+            via_device=(DOMAIN, entry_id),
         )
 
     def _handle_coordinator_update(self) -> None:
@@ -149,8 +179,20 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
 
         lightness = self.coordinator.data["state"].get("lightness")
         if lightness is not None:
-            # Use the client's static method for consistent conversion
-            return self.coordinator.client.mesh_to_brightness(lightness)
+            return value_to_brightness(BRIGHTNESS_SCALE_MESH, lightness)
+        return None
+
+    @property
+    def color_temp(self) -> int | None:
+        """Return the color temperature in mireds."""
+        if not self.available or not self.is_on or not self._device.supports_color_temp:
+            return None
+
+        temperature = self.coordinator.data["state"].get("temperature")
+        if temperature is not None:
+            # Convert mesh value to Kelvin first
+            kelvin = MIN_KELVIN + (temperature / 65535) * (MAX_KELVIN - MIN_KELVIN)
+            return color_temperature_kelvin_to_mired(kelvin)
         return None
 
     async def async_turn_on(self, **kwargs: Any) -> None:
@@ -162,42 +204,68 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
             }
 
             if ATTR_BRIGHTNESS in kwargs:
-                brightness = kwargs[ATTR_BRIGHTNESS]
-                lightness = self.coordinator.client.brightness_to_api(brightness)
                 try:
-                    await self.coordinator.client.set_lightness(self._device, lightness)
-                    new_state["lightness"] = self.coordinator.client.brightness_to_mesh(
-                        brightness
+                    lightness = brightness_to_value(
+                        BRIGHTNESS_SCALE_PERCENTAGE, kwargs[ATTR_BRIGHTNESS]
+                    )
+                except ValueError as ex:
+                    raise ServiceValidationError(
+                        f"Invalid brightness value for {self.name}: {ex}"
+                    ) from ex
+
+                try:
+                    await self.coordinator.client.set_lightness(
+                        self._device, lightness / 100
+                    )
+                    new_state["lightness"] = percentage_to_ranged_value(
+                        BRIGHTNESS_SCALE_MESH, lightness
                     )
                 except HafeleAPIError as ex:
-                    _LOGGER.error(
-                        "Failed to set brightness for light %s to %s: %s",
-                        self.name,
-                        brightness,
-                        str(ex),
+                    raise HomeAssistantError(
+                        f"Failed to set brightness for {self.name}: {ex}"
+                    ) from ex
+
+            if ATTR_COLOR_TEMP in kwargs and self._device.supports_color_temp:
+                mireds = kwargs[ATTR_COLOR_TEMP]
+                try:
+                    # Convert mireds to Kelvin, then to mesh value
+                    kelvin = color_temperature_mired_to_kelvin(mireds)
+                    # Map Kelvin range to mesh range (0-65535)
+                    mesh_temp = round(
+                        ((kelvin - MIN_KELVIN) / (MAX_KELVIN - MIN_KELVIN)) * 65535
                     )
-                    raise
+
+                    await self.coordinator.client.set_temperature(
+                        self._device, mesh_temp
+                    )
+                    new_state["temperature"] = kwargs[ATTR_COLOR_TEMP]
+                except ValueError as ex:
+                    raise ServiceValidationError(
+                        f"Invalid color temperature value for {self.name}: {ex}"
+                    ) from ex
+                except HafeleAPIError as ex:
+                    raise HomeAssistantError(
+                        f"Failed to set color temperature for {self.name}: {ex}"
+                    ) from ex
 
             try:
                 await self.coordinator.client.power_on(self._device)
             except HafeleAPIError as ex:
-                _LOGGER.error(
-                    "Failed to power on light %s: %s",
-                    self.name,
-                    str(ex),
-                )
-                raise
+                raise HomeAssistantError(
+                    f"Failed to power on {self.name}: {ex}"
+                ) from ex
 
             # Update coordinator data immediately
             self.coordinator.data = {"state": new_state}
             self.async_write_ha_state()
 
-        except HafeleAPIError as ex:
-            _LOGGER.error(
-                "Failed to turn on light %s: %s",
-                self.name,
-                str(ex),
-            )
+        except (ServiceValidationError, HomeAssistantError):
+            # Re-raise these as they are already properly handled exceptions
+            raise
+        except Exception as ex:
+            # Catch any other unexpected exceptions and wrap them
+            _LOGGER.exception("Unexpected error turning on %s", self.name)
+            raise HomeAssistantError(f"Unexpected error turning on {self.name}") from ex
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the light off."""
@@ -224,10 +292,10 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
         """Return additional state attributes."""
         return {
             "device_id": self._device.id,
+            "device_type": self._device.type,
             "last_update": self._device.last_updated.isoformat(),
             "last_update_success": self.coordinator.last_update_success,
             "update_interval": self.coordinator.update_interval.total_seconds(),
-            "device_type": self._device.type,
             "bootloader_version": self._device.bootloader_version,
             "raw_state": self.coordinator.data["state"]
             if self.coordinator.data

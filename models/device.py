@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 from ..exceptions import ValidationError
 from datetime import datetime, UTC
+from enum import Enum
 
 
 @dataclass
@@ -39,6 +40,100 @@ class Element:
             )
         except (KeyError, ValueError, TypeError) as e:
             raise ValidationError(f"Invalid element data: {str(e)}")
+
+
+class DeviceType(Enum):
+    """Enum for Häfele Connect Mesh device types."""
+
+    # Ledvance devices
+    LEDVANCE_SOCKET = "de.ledvance.socket"
+
+    # Jung devices
+    JUNG_SOCKET = "de.jung.socket"
+
+    # Nimbus devices
+    NIMBUS_PAD_DIRECT = "de.nimbus.lighting.pad.direct"
+    NIMBUS_PAD_INDIRECT = "de.nimbus.lighting.pad.indirect"
+    NIMBUS_LEGGERA = "de.nimbus.leggera"
+    NIMBUS_Q_CLASSIC_MW = "de.nimbus.q.classic.multiwhite"
+    NIMBUS_Q_CUBIC_MW = "de.nimbus.q.cubic.multiwhite"
+    NIMBUS_Q_FOUR_MW = "de.nimbus.q.four.multiwhite"
+    NIMBUS_ZEN = "de.nimbus.zen"
+
+    # Häfele furniture devices
+    HAEFELE_TVLIFT = "com.haefele.tvlift"
+    HAEFELE_MOTOR = "com.haefele.motor"
+    HAEFELE_WARDROBE_LIFT = "com.haefele.lift.wardrobe"
+    HAEFELE_PUSHLOCK = "com.haefele.pushlock"
+    HAEFELE_PUSHLOCK_5S = "com.haefele.pushlock.5s"
+
+    # Häfele lighting devices
+    HAEFELE_LED_RGB = "com.haefele.led.rgb"
+    HAEFELE_LED_RGB_SPOT = "com.haefele.led.rgb.spot"
+    HAEFELE_LED_MW_SPOT = "com.haefele.led.multiwhite.spot"
+    HAEFELE_LED_MW_2200K = "com.haefele.led.multiwhite.2200K"
+    HAEFELE_LED_MW_2700K = "com.haefele.led.multiwhite.2700K"
+    HAEFELE_LED_MW_2WIRE_MONO_SPOT = "com.haefele.led.multiwhite.2wire.monochrome.spot"
+    HAEFELE_LED_MW_2WIRE_MONO_STRIPE = (
+        "com.haefele.led.multiwhite.2wire.monochrome.stripe"
+    )
+    HAEFELE_LED_MW_2WIRE_MW_SPOT = "com.haefele.led.multiwhite.2wire.mw.spot"
+    HAEFELE_LED_MW_2WIRE_MW_STRIPE = "com.haefele.led.multiwhite.2wire.mw.stripe"
+    HAEFELE_LED_WHITE = "com.haefele.led.white"
+    HAEFELE_LED_WHITE_STRIP = "com.haefele.led.white.strip"
+
+    # Häfele other devices
+    HAEFELE_SOCKET = "com.haefele.socket"
+    HAEFELE_MOTION_SENSOR = "com.haefele.motion.sensor"
+    HAEFELE_FURNITURE_SENSOR_MAINS = "com.haefele.furniture.sensor.mains"
+    HAEFELE_FURNITURE_SENSOR_BATTERY = "com.haefele.furniture.sensor.battery"
+    HAEFELE_WALLCONTROLLER = "com.haefele.wallcontroller.actuator"
+    HAEFELE_Q_DEV_MW = "com.haefele.q.dev.multiwhite"
+    HAEFELE_Q_DEV_MONO = "com.haefele.q.dev.monochrome"
+
+    # Generic devices
+    GENERIC_LED_MW = "com.generic.led.multiwhite"
+    GENERIC_LED_WHITE = "com.generic.led.white"
+    GENERIC_LED_RGB = "com.generic.led.rgb"
+    GENERIC_LEVEL = "com.generic.level"
+    NORDIC_DEVKIT_LEVEL = "com.nordic.devkit.level"
+
+    @property
+    def is_light(self) -> bool:
+        """Check if the device type is a light."""
+        return any(
+            self.value.startswith(prefix)
+            for prefix in ["com.haefele.led", "com.generic.led", "de.nimbus"]
+        )
+
+    @property
+    def supports_color_temp(self) -> bool:
+        """Check if the device type supports color temperature."""
+        return any(
+            self.value.startswith(prefix)
+            for prefix in [
+                "com.haefele.led.multiwhite",
+                "de.nimbus.q",
+                "com.haefele.q.dev.multiwhite",
+                "com.generic.led.multiwhite",
+            ]
+        )
+
+    @property
+    def supports_hsl(self) -> bool:
+        """Check if the device type supports Hue, Saturation and lightness."""
+        return any(
+            self.value.startswith(prefix)
+            for prefix in ["com.haefele.led.rgb", "com.generic.led.rgb"]
+        )
+
+    @classmethod
+    def from_str(cls, type_str: str) -> "DeviceType":
+        """Create DeviceType from string value."""
+        try:
+            return cls(type_str)
+        except ValueError:
+            raise ValidationError(f"Invalid device type: {type_str}")
 
 
 class Device:
@@ -98,7 +193,7 @@ class Device:
         self._ble_address = ble_address
         self._mac_bytes = mac_bytes
         self._bootloader_version = bootloader_version
-        self._type = type
+        self._type = DeviceType.from_str(type)
         self._unique_id = unique_id
         self._device_key = device_key
         self._elements = elements
@@ -145,7 +240,7 @@ class Device:
         return self._bootloader_version
 
     @property
-    def type(self) -> str:
+    def type(self) -> DeviceType:
         """Get the device type."""
         return self._type
 
@@ -214,7 +309,7 @@ class Device:
             "bleAddress": self._ble_address,
             "macBytes": self._mac_bytes,
             "bootloaderVersion": self._bootloader_version,
-            "type": self._type,
+            "type": self._type.value,
             "uniqueId": self._unique_id,
             "deviceKey": self._device_key,
             "elements": [
@@ -234,7 +329,7 @@ class Device:
         Returns:
             bool: True if device is a light type
         """
-        return self._type.startswith("com.haefele.led")
+        return self._type.is_light
 
     @property
     def is_switch(self) -> bool:
@@ -253,3 +348,13 @@ class Device:
             bool: True if device is a sensor type
         """
         return self._type.startswith("com.haefele.sensor")
+
+    @property
+    def supports_color_temp(self) -> bool:
+        """Check if the device supports color temperature."""
+        return self._type.supports_color_temp
+
+    @property
+    def supports_hsl(self) -> bool:
+        """Check if the device supports RGB color."""
+        return self._type.supports_hsl
