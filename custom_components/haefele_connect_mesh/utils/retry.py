@@ -92,7 +92,7 @@ def retry_with_backoff(
                     delay = min(base_delay * (2 ** (attempt - 1)), max_delay)
                     # Add random jitter
                     jitter = random.uniform(-jitter_range, jitter_range)
-                    total_delay = max(delay + jitter, 0.1)
+                    total_delay = max(delay + jitter, base_delay)
 
                     logger.debug(
                         "Retrying request after %.2f seconds (attempt %d/%d)",

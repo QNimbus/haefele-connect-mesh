@@ -38,7 +38,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             Tuple of (success, error_message)
         """
         session = async_get_clientsession(self.hass)
-        client = HafeleClient(api_token, session)
+        client = HafeleClient(api_token, session, timeout=6)
 
         try:
             networks = await client.get_networks()

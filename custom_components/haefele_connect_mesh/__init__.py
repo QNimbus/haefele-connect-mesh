@@ -36,7 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Create API client
     session = async_get_clientsession(hass)
-    client = HafeleClient(entry.data["api_token"], session)
+    client = HafeleClient(entry.data["api_token"], session, timeout=10)
 
     # Store client for use by platforms
     hass.data[DOMAIN][entry.entry_id] = {

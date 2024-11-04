@@ -37,7 +37,7 @@ class HafeleClient:
         }
         logger.debug("Initialized HafeleClient with base URL: %s", self._base_url)
 
-    @retry_with_backoff(max_delay=8.0)
+    @retry_with_backoff(base_delay=0.5, max_delay=4.0, jitter_range=0.5)
     async def _request(
         self, method: str, endpoint: str, timeout: Optional[int] = None, **kwargs: Any
     ) -> aiohttp.ClientResponse:
