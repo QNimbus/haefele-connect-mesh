@@ -16,8 +16,8 @@ While the integration includes support for color temperature and RGB/HSL capable
 
 ## Prerequisites
 
-- A working Häfele Connect Mesh setup
-- A Häfele Connect Mesh API token
+- A working Häfele Connect Mesh setup ([Häfele Connect Mesh Gateway](https://www.hafele.nl/nl/product/gateway-haefele-connect-mesh/85000074))
+- A Häfele Connect Mesh API token (Sign up for a [Connect Mesh Cloud](https://cloud.connect-mesh.io/developer) account and generate an API token)
 - Home Assistant 2024.1.0 or newer
 
 ## Installation
@@ -45,6 +45,8 @@ While the integration includes support for color temperature and RGB/HSL capable
 2. Click "Add Integration"
 3. Search for "Häfele Connect Mesh"
 4. Enter your API token
+   - Navigate to [Connect Mesh Cloud](https://cloud.connect-mesh.io/developer) to create an account and generate an API token
+   - You can manually interact with the API using the [Connect Mesh Web API](https://webapi.cloud.connect-mesh.io/api/) if you prefer
 5. Select the network you want to add
 
 ## Features
