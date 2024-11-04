@@ -1,0 +1,30 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Se connecter au Cloud Häfele",
+                "description": "Veuillez entrer votre jeton API Häfele Connect Mesh",
+                "data": {
+                    "api_token": "Jeton API"
+                }
+            },
+            "network": {
+                "title": "Sélectionner le Réseau",
+                "description": "Sélectionnez le réseau Häfele Connect Mesh à ajouter",
+                "data": {
+                    "network_id": "Réseau"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Échec de la connexion au Cloud Häfele",
+            "invalid_auth": "Jeton API invalide",
+            "no_networks_found": "Aucun réseau trouvé dans votre compte Häfele",
+            "network_not_found": "Réseau sélectionné introuvable",
+            "unknown": "Une erreur inattendue est survenue"
+        },
+        "abort": {
+            "already_configured": "Ce réseau Häfele est déjà configuré"
+        }
+    }
+}
