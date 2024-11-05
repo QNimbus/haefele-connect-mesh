@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import List, Optional, Dict, Any, Set
 
 from ..exceptions import ValidationError
@@ -500,7 +500,7 @@ class Network:
         self._update_date = update_date
         self._mesh_config = mesh_config
         self._devices = devices
-        self._last_updated = datetime.utcnow()
+        self._last_updated = datetime.now(UTC)
 
     @property
     def id(self) -> str:
@@ -539,7 +539,7 @@ class Network:
 
     def update_timestamp(self) -> None:
         """Update the last_updated timestamp to current time."""
-        self._last_updated = datetime.utcnow()
+        self._last_updated = datetime.now(UTC)
 
     def get_devices(self, devices: List[Device]) -> List[Device]:
         """Get all devices associated with this network.
