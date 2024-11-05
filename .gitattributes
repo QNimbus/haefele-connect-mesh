@@ -1,5 +1,7 @@
-# Set default behavior to automatically normalize line endings
+# Auto detect text files and perform line ending normalization
 * text=auto
 
-# Force all text files to use LF line endings
-* text eol=lf
+# Force shell scripts to use LF
+*.py text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
