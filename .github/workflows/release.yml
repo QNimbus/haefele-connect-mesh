@@ -38,7 +38,7 @@ jobs:
         id: version
         run: |
           # Read current version from manifest.json
-          CURRENT_VERSION=$(python -c "import json; print(json.load(open('haefele_connect_mesh/manifest.json'))['version'])")
+          CURRENT_VERSION=$(python -c "import json; print(json.load(open('custom_components/haefele_connect_mesh/manifest.json'))['version'])")
           
           # Calculate new version based on increment type
           NEW_VERSION=$(python -c "
@@ -57,9 +57,9 @@ jobs:
           # Update manifest.json with new version
           python -c "
           import json
-          manifest = json.load(open('haefele_connect_mesh/manifest.json'))
+          manifest = json.load(open('custom_components/haefele_connect_mesh/manifest.json'))
           manifest['version'] = '$NEW_VERSION'
-          json.dump(manifest, open('haefele_connect_mesh/manifest.json', 'w'), indent=2)
+          json.dump(manifest, open('custom_components/haefele_connect_mesh/manifest.json', 'w'), indent=2)
           "
           
           # Set output variables
@@ -70,7 +70,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add haefele_connect_mesh/manifest.json
+          git add custom_components/haefele_connect_mesh/manifest.json
           git commit -m "Bump version to ${{ steps.version.outputs.new_version }}"
           git tag v${{ steps.version.outputs.new_version }}
 
