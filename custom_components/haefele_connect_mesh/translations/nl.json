@@ -2,29 +2,29 @@
     "config": {
         "step": {
             "user": {
-                "title": "Verbind met Häfele Cloud",
-                "description": "Voer je Häfele Connect Mesh API-token in",
+                "title": "Verbind met Häfele Connect Mesh",
                 "data": {
-                    "api_token": "API-token"
+                    "api_token": "API Token"
                 }
             },
             "network": {
                 "title": "Selecteer Netwerk",
-                "description": "Selecteer welk Häfele Connect Mesh-netwerk je wilt toevoegen",
+                "description": "In totaal {device_count} apparaten en {group_count} groepen gevonden.\nSelecteer een netwerk om door te gaan...",
                 "data": {
-                    "network_id": "Netwerk"
+                    "network_id": "Netwerk (apparaten / groepen)",
+                    "import_groups": "Importeer ook groepen "
+                },
+                "data_description": {
+                    "import_groups": "Maak entiteiten aan voor groepen in Home Assistant"
                 }
             }
         },
         "error": {
-            "cannot_connect": "Verbinding met Häfele Cloud mislukt",
-            "invalid_auth": "Ongeldig API-token",
-            "no_networks_found": "Geen netwerken gevonden in je Häfele-account",
+            "cannot_connect": "Kan geen verbinding maken",
+            "invalid_auth": "Ongeldige authenticatie",
+            "no_networks_found": "Geen netwerken gevonden",
             "network_not_found": "Geselecteerd netwerk niet gevonden",
-            "unknown": "Er is een onverwachte fout opgetreden"
-        },
-        "abort": {
-            "already_configured": "Dit Häfele-netwerk is al geconfigureerd"
+            "unknown": "Onverwachte fout"
         }
     }
 }

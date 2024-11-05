@@ -7,12 +7,12 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers import device_registry
+from homeassistant.helpers import device_registry as dr
 
 from .api.client import HafeleClient
 
@@ -38,14 +38,41 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     session = async_get_clientsession(hass)
     client = HafeleClient(entry.data["api_token"], session, timeout=10)
 
-    # Store client for use by platforms
-    hass.data[DOMAIN][entry.entry_id] = {
-        "client": client,
-        "coordinators": {},  # Will store device coordinators
-    }
+    # Get network ID from config entry
+    network_id = entry.data["network_id"]
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    return True
+    try:
+        # Get gateways for this network
+        gateways = await client.get_gateways()
+        network_gateways = [g for g in gateways if g.network_id == network_id]
+
+        # Register gateways as devices
+        device_registry = dr.async_get(hass)
+
+        for gateway in network_gateways:
+            device_registry.async_get_or_create(
+                config_entry_id=entry.entry_id,
+                identifiers={(DOMAIN, gateway.id)},
+                name=f"Häfele Gateway {gateway.id[:8]}",
+                manufacturer="Häfele",
+                model="Connect Mesh Gateway",
+                sw_version=gateway.firmware,
+                entry_type=dr.DeviceEntryType.SERVICE,
+            )
+
+        # Store client for use by platforms
+        hass.data[DOMAIN][entry.entry_id] = {
+            "client": client,
+            "coordinators": {},
+            "gateways": network_gateways,
+        }
+
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        return True
+
+    except Exception as error:
+        _LOGGER.error("Failed to set up Häfele Connect Mesh: %s", str(error))
+        raise ConfigEntryNotReady from error
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

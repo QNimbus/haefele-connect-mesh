@@ -2,29 +2,29 @@
     "config": {
         "step": {
             "user": {
-                "title": "Connect to Häfele Cloud",
-                "description": "Please enter your Häfele Connect Mesh API token",
+                "title": "Connect to Häfele Connect Mesh",
                 "data": {
                     "api_token": "API Token"
                 }
             },
             "network": {
                 "title": "Select Network",
-                "description": "Select which Häfele Connect Mesh network to add",
+                "description": "Found {device_count} devices and {group_count} groups across all networks.\nSelect a network to continue...",
                 "data": {
-                    "network_id": "Network"
+                    "network_id": "Network (devices / groups)",
+                    "import_groups": "Import groups as well"
+                },
+                "data_description": {
+                    "import_groups": "Create entities for groups in Home Assistant"
                 }
             }
         },
         "error": {
-            "cannot_connect": "Failed to connect to Häfele Cloud",
-            "invalid_auth": "Invalid API token",
-            "no_networks_found": "No networks found in your Häfele account",
-            "network_not_found": "Selected network was not found",
-            "unknown": "Unexpected error occurred"
-        },
-        "abort": {
-            "already_configured": "This Häfele network is already configured"
+            "cannot_connect": "Failed to connect",
+            "invalid_auth": "Invalid authentication",
+            "no_networks_found": "No networks found",
+            "network_not_found": "Selected network not found",
+            "unknown": "Unexpected error"
         }
     }
 }

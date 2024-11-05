@@ -2,14 +2,16 @@ import json
 import logging
 import aiohttp
 import asyncio
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from ..utils.retry import retry_with_backoff
 from ..utils.rate_limit import rate_limit
 from ..exceptions import HafeleAPIError
 from .endpoints import BASE_URL, Endpoints
 from ..models.network import Network
 from ..models.device import Device
+from ..models.group import Group
 from ..exceptions import ValidationError
+from ..models.gateway import Gateway
 
 logger = logging.getLogger(__name__)
 
@@ -134,13 +136,77 @@ class HafeleClient:
             if isinstance(networks_data, dict):
                 networks_data = [networks_data]
 
-            return [Network.from_dict(network) for network in networks_data]
+            # Fetch network details for each network
+            return [
+                await self.get_network_details(network["id"])
+                for network in networks_data
+            ]
 
         except HafeleAPIError:
-            # No need to wrap the error since _get already does proper error handling
+            # Re-raise since _get already handles proper error wrapping
             raise
 
-    async def get_network(self, network_id: str) -> Network:
+    async def get_gateways(self) -> List[Gateway]:
+        """Fetch all available gateways."""
+        try:
+            response = await self._get(Endpoints.GATEWAYS.value)
+            gateways_data = await response.json()
+
+            logger.debug("Successfully fetched gateways data")
+            logger.debug("Gateways response data: %s", gateways_data)
+
+            if isinstance(gateways_data, dict):
+                gateways_data = [gateways_data]
+
+            return [Gateway.from_dict(gateway) for gateway in gateways_data]
+
+        except HafeleAPIError:
+            # Re-raise since _get already handles proper error wrapping
+            raise
+
+    async def gateway_ping(self, gateway_id: str) -> Tuple[bool, Optional[int]]:
+        """Ping a gateway to check its connectivity and response time.
+
+        Args:
+            gateway_id: The ID of the gateway to ping
+
+        Returns:
+            Tuple of (success, response_time_ms)
+            - success: Boolean indicating if ping was successful
+            - response_time_ms: Response time in milliseconds, or None if ping failed
+
+        Raises:
+            HafeleAPIError: If the API request fails
+            ValidationError: If gateway_id is invalid
+        """
+        try:
+            endpoint = Endpoints.GATEWAY_PING.value.format(id=gateway_id)
+            logger.debug("Pinging gateway %s", gateway_id)
+
+            response = await self._get(endpoint)
+            data = await response.json()
+
+            success = data.get("success", False)
+            response_time = data.get("time") if success else None
+
+            logger.debug(
+                "Gateway ping result - Success: %s, Response time: %sms",
+                success,
+                response_time,
+            )
+
+            return success, response_time
+
+        except HafeleAPIError as e:
+            logger.error("Failed to ping gateway %s: %s", gateway_id, str(e))
+            raise
+        except Exception as e:
+            logger.error("Unexpected error pinging gateway %s: %s", gateway_id, str(e))
+            raise HafeleAPIError(
+                message=f"Failed to ping gateway: {str(e)}", error_code="PING_FAILED"
+            )
+
+    async def get_network_details(self, network_id: str) -> Network:
         """Fetch information about a specific network.
 
         Args:
@@ -190,6 +256,97 @@ class HafeleClient:
         except HafeleAPIError:
             # Re-raise since _get already handles proper error wrapping
             raise
+
+    async def get_groups(self) -> List[Group]:
+        """Fetch all available groups.
+
+        Returns:
+            List of Group model instances containing group details,
+            excluding groups with no devices.
+
+        Raises:
+            HafeleAPIError: If the API request fails.
+            AuthenticationError: If API key is invalid.
+            ValidationError: If group data is invalid.
+        """
+        logger.debug("Fetching groups from endpoint: %s", Endpoints.GROUPS.value)
+
+        try:
+            response = await self._get(Endpoints.GROUPS.value)
+            groups_data = await response.json()
+            unique_network_ids = {
+                group["networkId"] for group in groups_data if group.get("networkId")
+            }
+            network_details = {}
+            for network_id in unique_network_ids:
+                try:
+                    network_details[network_id] = await self.get_network_details(
+                        network_id
+                    )
+                    logger.debug(
+                        "Fetched network details for all unique network IDs: %s",
+                        network_details,
+                    )
+                except HafeleAPIError as e:
+                    logger.debug(
+                        "Failed to fetch network details for network ID %s: %s",
+                        network_id,
+                        str(e),
+                    )
+
+            logger.debug("Successfully fetched groups data")
+            logger.debug("Groups response data: %s", groups_data)
+
+            # Convert to list if single dict is returned
+            if isinstance(groups_data, dict):
+                groups_data = [groups_data]
+
+            # Convert and filter groups with non-empty device lists
+            groups = [
+                Group.from_dict(group) for group in groups_data if group.get("devices")
+            ]
+
+            # Fetch devices for each group
+            for group in groups:
+                group.devices = [
+                    await self.get_device_details(device_id)
+                    for device_id in group.device_ids
+                ]
+
+            logger.debug(
+                "Converted %d groups with devices to Group models", len(groups)
+            )
+
+            return groups
+
+        except ValidationError as e:
+            logger.error("Failed to parse group data: %s", str(e))
+            raise
+        except HafeleAPIError:
+            # Re-raise since _get already handles proper error wrapping
+            raise
+
+    async def get_groups_for_network(self, network_id: str) -> List[Group]:
+        """Fetch all groups belonging to a specific network.
+
+        Args:
+            network_id: The ID of the network to fetch groups for
+
+        Returns:
+            List of Group model instances belonging to the specified network.
+
+        Raises:
+            HafeleAPIError: If the API request fails.
+            AuthenticationError: If API key is invalid.
+            ValidationError: If group data is invalid.
+        """
+        logger.debug("Fetching groups for network: %s", network_id)
+
+        groups = await self.get_groups()
+        network_groups = [group for group in groups if group.network_id == network_id]
+
+        logger.debug("Found %d groups for network %s", len(network_groups), network_id)
+        return network_groups
 
     async def get_devices(self) -> List[Device]:
         """Fetch all available devices.

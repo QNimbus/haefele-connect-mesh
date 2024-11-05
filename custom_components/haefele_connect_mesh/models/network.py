@@ -5,6 +5,7 @@ from typing import List, Optional, Dict, Any, Set
 from ..exceptions import ValidationError
 from ..utils.parse_date import parse_iso_date
 from ..models.device import Device
+from ..models.group import Group
 
 
 class NetworkKey:
@@ -309,57 +310,57 @@ class Provisioner:
             raise ValidationError(f"Invalid provisioner data: {str(e)}")
 
 
-class Group:
-    """Represents a group in the mesh network."""
+# class Group:
+#     """Represents a group in the mesh network."""
 
-    def __init__(self, name: str, address: str, parent_address: str) -> None:
-        """Initialize a Group instance.
+#     def __init__(self, name: str, address: str, parent_address: str) -> None:
+#         """Initialize a Group instance.
 
-        Args:
-            name: Name of the group
-            address: Group address
-            parent_address: Parent group address
-        """
-        self._name = name
-        self._address = address
-        self._parent_address = parent_address
+#         Args:
+#             name: Name of the group
+#             address: Group address
+#             parent_address: Parent group address
+#         """
+#         self._name = name
+#         self._address = address
+#         self._parent_address = parent_address
 
-    @property
-    def name(self) -> str:
-        """Get the group name."""
-        return self._name
+#     @property
+#     def name(self) -> str:
+#         """Get the group name."""
+#         return self._name
 
-    @property
-    def address(self) -> str:
-        """Get the group address."""
-        return self._address
+#     @property
+#     def address(self) -> str:
+#         """Get the group address."""
+#         return self._address
 
-    @property
-    def parent_address(self) -> str:
-        """Get the parent group address."""
-        return self._parent_address
+#     @property
+#     def parent_address(self) -> str:
+#         """Get the parent group address."""
+#         return self._parent_address
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, str]) -> "Group":
-        """Create a Group instance from dictionary data.
+#     @classmethod
+#     def from_dict(cls, data: Dict[str, str]) -> "Group":
+#         """Create a Group instance from dictionary data.
 
-        Args:
-            data: Dictionary containing group data
+#         Args:
+#             data: Dictionary containing group data
 
-        Returns:
-            Group instance
+#         Returns:
+#             Group instance
 
-        Raises:
-            ValidationError: If required fields are missing
-        """
-        try:
-            return cls(
-                name=data["name"],
-                address=data["address"],
-                parent_address=data["parentAddress"],
-            )
-        except KeyError as e:
-            raise ValidationError(f"Invalid group data: {str(e)}")
+#         Raises:
+#             ValidationError: If required fields are missing
+#         """
+#         try:
+#             return cls(
+#                 name=data["name"],
+#                 address=data["address"],
+#                 parent_address=data["parentAddress"],
+#             )
+#         except KeyError as e:
+#             raise ValidationError(f"Invalid group data: {str(e)}")
 
 
 class MeshConfiguration:
@@ -375,6 +376,7 @@ class MeshConfiguration:
         app_keys: List[ApplicationKey],
         provisioners: List[Provisioner],
         groups: List[Group],
+        tos_groups: List[Dict[str, Any]],
     ) -> None:
         """Initialize a MeshConfiguration instance.
 
@@ -396,6 +398,7 @@ class MeshConfiguration:
         self._app_keys = app_keys
         self._provisioners = provisioners
         self._groups = groups
+        self._tos_groups = tos_groups
 
     @property
     def id(self) -> str:
@@ -437,6 +440,11 @@ class MeshConfiguration:
         """Get the groups."""
         return self._groups
 
+    @property
+    def tos_groups(self) -> List[Dict[str, Any]]:
+        """Get the TOS groups."""
+        return self._tos_groups
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "MeshConfiguration":
         """Create a MeshConfiguration instance from dictionary data.
@@ -459,7 +467,8 @@ class MeshConfiguration:
                 net_keys=[NetworkKey.from_dict(key) for key in data["netKeys"]],
                 app_keys=[ApplicationKey.from_dict(key) for key in data["appKeys"]],
                 provisioners=[Provisioner.from_dict(p) for p in data["provisioners"]],
-                groups=[Group.from_dict(group) for group in data["groups"]],
+                groups=data["groups"],
+                tos_groups=data["tos_groups"],
             )
         except KeyError as e:
             raise ValidationError(
@@ -540,6 +549,23 @@ class Network:
     def update_timestamp(self) -> None:
         """Update the last_updated timestamp to current time."""
         self._last_updated = datetime.now(UTC)
+
+    def get_groups(self) -> List[Group]:
+        """Get all groups associated with this network.
+
+        Returns:
+            List of Group instances belonging to this network
+        """
+        if self._mesh_config is None:
+            return []
+
+        network_groups = [
+            Group.from_dict({**group, "networkId": self._id})
+            for group in self._mesh_config.tos_groups
+            if group["type"] == "group"
+        ]
+
+        return network_groups
 
     def get_devices(self, devices: List[Device]) -> List[Device]:
         """Get all devices associated with this network.
@@ -681,7 +707,9 @@ class Network:
 
             if "network" in data:
                 try:
-                    network._mesh_config = MeshConfiguration.from_dict(data["network"])
+                    network._mesh_config = MeshConfiguration.from_dict(
+                        {"networkId": data["id"], **data["network"]}
+                    )
                 except ValidationError as e:
                     # Log warning but don't fail if mesh config is invalid
                     import logging

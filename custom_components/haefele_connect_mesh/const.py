@@ -6,6 +6,7 @@ VERSION = "0.1.0"
 
 # Configuration
 CONF_NETWORK_ID = "network_id"
+CONF_IMPORT_GROUPS = "import_groups"
 
 # Device Capabilities
 

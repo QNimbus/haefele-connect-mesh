@@ -59,7 +59,10 @@ async def async_setup_entry(
 
     try:
         devices = await client.get_devices_for_network(network_id)
-        lights = [device for device in devices if device.is_light]
+        groups = await client.get_groups_for_network(network_id)
+        lights = [device for device in devices if device.is_light] + [
+            group for group in groups if group.is_light
+        ]
 
         # Create coordinators for each device
         coordinators = {}
@@ -127,13 +130,20 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Return device info."""
+        # Get the gateway ID for this device's network
+        gateway_id = None
+        gateways = self.hass.data[DOMAIN][self._entry_id]["gateways"]
+        if gateways:
+            # Use the first gateway as the via_device
+            gateway_id = gateways[0].id
+
         return DeviceInfo(
             identifiers={(DOMAIN, self._device.id)},
             name=self._device.name,
             manufacturer="Häfele",
             model=self._device.type.value.split(".")[-1].capitalize(),
             sw_version=self._device.bootloader_version,
-            via_device=(DOMAIN, self._entry_id),
+            via_device=(DOMAIN, gateway_id) if gateway_id else None,
         )
 
     @property
@@ -307,7 +317,23 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
     @property
     def extra_state_attributes(self) -> dict:
         """Return additional state attributes."""
+        # Get network info from the device
+        network_info = {}
+        try:
+            # Get network data from the config entry
+            network_id = self._device.network_id
+            entry = self.platform.config_entry
+
+            if entry and entry.data.get("network_id") == network_id:
+                network_info = {
+                    "network_id": network_id,
+                    "network_name": entry.title,  # Config entry title is the network name
+                }
+        except Exception as ex:
+            _LOGGER.debug("Could not get network info: %s", str(ex))
+
         return {
+            **network_info,
             "device_id": self._device.id,
             "device_type": self._device.type,
             "last_update": self._device.last_updated.isoformat(),
