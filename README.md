@@ -52,6 +52,7 @@ While the integration includes support for color temperature and RGB/HSL capable
 ## Features
 
 - Automatic discovery of Häfele devices in your network
+- Automatic periodic refresh of device information (i.e. names)
 - Support for turning lights on/off
 - Support for dimming lights
 - Support for color temperature (untested)
