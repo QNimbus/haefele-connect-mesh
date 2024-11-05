@@ -1,0 +1,258 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "required": [
+    "id",
+    "partial",
+    "$schema",
+    "version",
+    "meshName",
+    "timestamp",
+    "meshUUID",
+    "netKeys",
+    "appKeys",
+    "provisioners",
+    "groups",
+    "scenes",
+    "nodes"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uri"
+    },
+    "partial": {
+      "type": "boolean"
+    },
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "meshName": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "meshUUID": {
+      "type": "string",
+      "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
+    },
+    "netKeys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "index",
+          "key",
+          "minSecurity",
+          "phase",
+          "timestamp"
+        ],
+        "properties": {
+          "name": { "type": "string" },
+          "index": { "type": "integer", "minimum": 0 },
+          "key": { "type": "string", "pattern": "^[0-9A-F]{32}$" },
+          "minSecurity": { "type": "string", "enum": ["secure"] },
+          "phase": { "type": "integer", "minimum": 0 },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "appKeys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "index", "boundNetKey", "key"],
+        "properties": {
+          "name": { "type": "string" },
+          "index": { "type": "integer", "minimum": 0 },
+          "boundNetKey": { "type": "integer", "minimum": 0 },
+          "key": { "type": "string", "pattern": "^[0-9A-F]{32}$" }
+        }
+      }
+    },
+    "provisioners": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "provisionerName",
+          "UUID",
+          "allocatedUnicastRange",
+          "allocatedGroupRange",
+          "allocatedSceneRange"
+        ],
+        "properties": {
+          "provisionerName": { "type": "string" },
+          "UUID": {
+            "type": "string",
+            "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
+          },
+          "allocatedUnicastRange": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["lowAddress", "highAddress"],
+              "properties": {
+                "lowAddress": { "type": "string", "pattern": "^[0-9A-F]{4}$" },
+                "highAddress": { "type": "string", "pattern": "^[0-9A-F]{4}$" }
+              }
+            }
+          },
+          "allocatedGroupRange": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["lowAddress", "highAddress"],
+              "properties": {
+                "lowAddress": { "type": "string", "pattern": "^[0-9A-F]{4}$" },
+                "highAddress": { "type": "string", "pattern": "^[0-9A-F]{4}$" }
+              }
+            }
+          },
+          "allocatedSceneRange": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["firstScene", "lastScene"],
+              "properties": {
+                "firstScene": { "type": "string", "pattern": "^[0-9a-f]{4}$" },
+                "lastScene": { "type": "string", "pattern": "^[0-9a-f]{4}$" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "address", "parentAddress"],
+        "properties": {
+          "name": { "type": "string" },
+          "address": { "type": "string", "pattern": "^[0-9A-F]{4}$" },
+          "parentAddress": { "type": "string", "pattern": "^[0-9A-F]{4}$" }
+        }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "addresses", "number"],
+        "properties": {
+          "name": { "type": "string" },
+          "addresses": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[0-9A-F]{4}$" }
+          },
+          "number": { "type": "string", "pattern": "^[0-9A-F]{4}$" }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "configComplete",
+          "excluded",
+          "UUID",
+          "unicastAddress",
+          "security",
+          "deviceKey",
+          "elements",
+          "netKeys",
+          "appKeys",
+          "tos_node",
+          "tos_devices"
+        ],
+        "properties": {
+          "configComplete": { "type": "boolean" },
+          "excluded": { "type": "boolean" },
+          "UUID": {
+            "type": "string",
+            "pattern": "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
+          },
+          "unicastAddress": { "type": "string", "pattern": "^[0-9A-F]{4}$" },
+          "security": { "type": "string", "enum": ["secure"] },
+          "deviceKey": { "type": "string", "pattern": "^[0-9A-F]{32}$" },
+          "elements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["location", "index", "name", "models"],
+              "properties": {
+                "location": { "type": "string", "pattern": "^[0-9A-F]{4}$" },
+                "index": { "type": "integer", "minimum": 0 },
+                "name": { "type": "string" },
+                "models": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["modelId", "subscribe", "bind"],
+                    "properties": {
+                      "modelId": { "type": "string" },
+                      "subscribe": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[0-9A-F]{4}$"
+                        }
+                      },
+                      "bind": {
+                        "type": "array",
+                        "items": { "type": "integer", "minimum": 0 }
+                      },
+                      "publish": {
+                        "type": "object",
+                        "properties": {
+                          "address": {
+                            "type": "string",
+                            "pattern": "^[0-9A-F]{4}$"
+                          },
+                          "index": { "type": "integer", "minimum": 0 },
+                          "ttl": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255
+                          },
+                          "period": {
+                            "type": "object",
+                            "properties": {
+                              "numberOfSteps": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "resolution": { "type": "integer" }
+                            }
+                          },
+                          "retransmit": {
+                            "type": "object",
+                            "properties": {
+                              "count": { "type": "integer", "minimum": 0 },
+                              "interval": { "type": "integer", "minimum": 0 }
+                            }
+                          },
+                          "credentials": { "type": "integer", "minimum": 0 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
