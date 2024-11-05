@@ -124,9 +124,7 @@ class HafeleClient:
         logger.debug("Fetching networks")
 
         try:
-            response = await self._get(
-                Endpoints.NETWORKS.value, timeout=60
-            )  # Custom timeout for this request
+            response = await self._get(Endpoints.NETWORKS.value)
             networks_data = await response.json()
 
             logger.debug("Successfully fetched network data")
