@@ -1,12 +1,14 @@
 {
   "domain": "haefele_connect_mesh",
-  "name": "Häfele Connect Mesh",
-  "codeowners": ["@qnimbus"],
+  "name": "H\u00e4fele Connect Mesh",
+  "codeowners": [
+    "@qnimbus"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/qnimbus/haefele_connect_mesh",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/qnimbus/haefele_connect_mesh/issues",
   "requirements": [],
-  "version": "1.0.3"
+  "version": "1.0.4"
 }
