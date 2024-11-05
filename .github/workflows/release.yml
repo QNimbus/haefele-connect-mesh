@@ -1,0 +1,91 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_increment:
+        description: 'Version increment type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install semver
+
+      - name: Update version and create tag
+        id: version
+        run: |
+          # Read current version from manifest.json
+          CURRENT_VERSION=$(python -c "import json; print(json.load(open('haefele_connect_mesh/manifest.json'))['version'])")
+          
+          # Calculate new version based on increment type
+          NEW_VERSION=$(python -c "
+          import semver
+          current = semver.Version.parse('$CURRENT_VERSION')
+          increment = '${{ github.event.inputs.version_increment }}'
+          if increment == 'major':
+              new = current.bump_major()
+          elif increment == 'minor':
+              new = current.bump_minor()
+          else:
+              new = current.bump_patch()
+          print(str(new))
+          ")
+          
+          # Update manifest.json with new version
+          python -c "
+          import json
+          manifest = json.load(open('haefele_connect_mesh/manifest.json'))
+          manifest['version'] = '$NEW_VERSION'
+          json.dump(manifest, open('haefele_connect_mesh/manifest.json', 'w'), indent=2)
+          "
+          
+          # Set output variables
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Version updated from $CURRENT_VERSION to $NEW_VERSION"
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add haefele_connect_mesh/manifest.json
+          git commit -m "Bump version to ${{ steps.version.outputs.new_version }}"
+          git tag v${{ steps.version.outputs.new_version }}
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+          tags: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.new_version }}
+          name: Release v${{ steps.version.outputs.new_version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true 
