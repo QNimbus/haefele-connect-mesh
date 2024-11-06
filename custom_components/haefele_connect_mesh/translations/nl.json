@@ -1,30 +1,42 @@
 {
-    "config": {
-        "step": {
-            "user": {
-                "title": "Verbind met Häfele Connect Mesh",
-                "data": {
-                    "api_token": "API Token"
-                }
-            },
-            "network": {
-                "title": "Selecteer Netwerk",
-                "description": "In totaal {device_count} apparaten en {group_count} groepen gevonden.\nSelecteer een netwerk om door te gaan...",
-                "data": {
-                    "network_id": "Netwerk (apparaten / groepen)",
-                    "import_groups": "Importeer ook groepen "
-                },
-                "data_description": {
-                    "import_groups": "Maak entiteiten aan voor groepen in Home Assistant"
-                }
-            }
-        },
-        "error": {
-            "cannot_connect": "Kan geen verbinding maken",
-            "invalid_auth": "Ongeldige authenticatie",
-            "no_networks_found": "Geen netwerken gevonden",
-            "network_not_found": "Geselecteerd netwerk niet gevonden",
-            "unknown": "Onverwachte fout"
+  "config": {
+    "step": {
+      "user": {
+        "title": "Verbind met Häfele Connect Mesh",
+        "data": {
+          "api_token": "API Token"
         }
+      },
+      "network": {
+        "title": "Selecteer Netwerk",
+        "description": "In totaal {device_count} apparaten gevonden.\nSelecteer een netwerk om door te gaan...",
+        "data": {
+          "network_id": "Netwerk (aantal apparaten)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kan geen verbinding maken",
+      "invalid_auth": "Ongeldige authenticatie",
+      "no_networks_found": "Geen netwerken gevonden",
+      "network_not_found": "Geselecteerd netwerk niet gevonden",
+      "unknown": "Onverwachte fout"
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "last_update_success": {
+        "name": "Laatste update",
+        "state": {
+          "on": "Geslaagd",
+          "off": "Mislukt"
+        }
+      }
+    },
+    "sensor": {
+      "last_update": {
+        "name": "Laatste update"
+      }
+    }
+  }
 }

@@ -54,22 +54,13 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Häfele Connect Mesh Light platform."""
-    client: HafeleClient = hass.data[DOMAIN][config_entry.entry_id]["client"]
     network_id = config_entry.data["network_id"]
+    client: HafeleClient = hass.data[DOMAIN][config_entry.entry_id]["client"]
+    coordinators = hass.data[DOMAIN][config_entry.entry_id]["coordinators"]
 
     try:
-        devices = await client.get_devices_for_network(network_id)
-        groups = await client.get_groups_for_network(network_id)
-        lights = [device for device in devices if device.is_light] + [
-            group for group in groups if group.is_light
-        ]
-
-        # Create coordinators for each device
-        coordinators = {}
-        for light in lights:
-            coordinator = HafeleUpdateCoordinator(hass, client, light)
-            await coordinator.async_config_entry_first_refresh()
-            coordinators[light.id] = coordinator
+        devices = hass.data[DOMAIN][config_entry.entry_id]["devices"]
+        lights = [device for device in devices if device.is_light]
 
         # Create light entities
         entities = [
@@ -87,9 +78,6 @@ async def async_setup_entry(
 class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
     """Representation of a Häfele Connect Mesh Light."""
 
-    _attr_has_entity_name = True
-    _attr_name = None
-
     def __init__(
         self,
         coordinator: HafeleUpdateCoordinator,
@@ -102,6 +90,8 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
         self._device = device
         self._entry_id = entry_id
         self._attr_unique_id = f"{device.id}_light"
+        self._attr_name = device.name
+        self._attr_has_entity_name = True
 
         # Set color modes based on device capabilities
         if device.supports_hsl:
@@ -213,6 +203,7 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
             new_state = {
                 "power": True,
                 "lightness": self.coordinator.data["state"]["lightness"],
+                "lastLightness": self.coordinator.data["state"]["lastLightness"],
             }
 
             if ATTR_BRIGHTNESS in kwargs:
@@ -304,6 +295,7 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
                 "state": {
                     "power": False,
                     "lightness": self.coordinator.data["state"]["lightness"],
+                    "lastLightness": self.coordinator.data["state"]["lastLightness"],
                 }
             }
             self.async_write_ha_state()
@@ -336,13 +328,11 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
             **network_info,
             "device_id": self._device.id,
             "device_type": self._device.type,
-            "last_update": self._device.last_updated.isoformat(),
-            "last_update_success": self.coordinator.last_update_success,
             "update_interval": self.coordinator.update_interval.total_seconds(),
             "bootloader_version": self._device.bootloader_version,
-            "raw_state": self.coordinator.data["state"]
-            if self.coordinator.data
-            else None,
+            # "raw_state": self.coordinator.data["state"]
+            # if self.coordinator.data
+            # else None,
         }
 
     async def async_added_to_hass(self) -> None:

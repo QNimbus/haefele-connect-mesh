@@ -1,30 +1,42 @@
 {
-    "config": {
-        "step": {
-            "user": {
-                "title": "Se connecter au Cloud Häfele",
-                "description": "Veuillez entrer votre jeton API Häfele Connect Mesh",
-                "data": {
-                    "api_token": "Jeton API"
-                }
-            },
-            "network": {
-                "title": "Sélectionner le Réseau",
-                "description": "Sélectionnez le réseau Häfele Connect Mesh à ajouter",
-                "data": {
-                    "network_id": "Réseau"
-                }
-            }
-        },
-        "error": {
-            "cannot_connect": "Échec de la connexion au Cloud Häfele",
-            "invalid_auth": "Jeton API invalide",
-            "no_networks_found": "Aucun réseau trouvé dans votre compte Häfele",
-            "network_not_found": "Réseau sélectionné introuvable",
-            "unknown": "Une erreur inattendue est survenue"
-        },
-        "abort": {
-            "already_configured": "Ce réseau Häfele est déjà configuré"
+  "config": {
+    "step": {
+      "user": {
+        "title": "Se connecter à Häfele Connect Mesh",
+        "data": {
+          "api_token": "Jeton API"
         }
+      },
+      "network": {
+        "title": "Sélectionner le Réseau",
+        "description": "{device_count} appareils trouvés dans tous les réseaux.\nSélectionnez un réseau pour continuer...",
+        "data": {
+          "network_id": "Réseau (Nb d'appareils)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Connexion échouée",
+      "invalid_auth": "Authentification invalide",
+      "no_networks_found": "Aucun réseau trouvé",
+      "network_not_found": "Réseau sélectionné introuvable",
+      "unknown": "Erreur inattendue"
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "last_update_success": {
+        "name": "Dernière mise à jour",
+        "state": {
+          "on": "Réussie",
+          "off": "Échouée"
+        }
+      }
+    },
+    "sensor": {
+      "last_update": {
+        "name": "Dernière mise à jour"
+      }
+    }
+  }
 }
