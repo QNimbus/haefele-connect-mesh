@@ -15,11 +15,12 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import device_registry as dr
 
 from .api.client import HafeleClient
+from .coordinator import HafeleUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "haefele_connect_mesh"
-PLATFORMS: list[Platform] = [Platform.LIGHT]
+PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.SENSOR, Platform.BINARY_SENSOR]
 
 CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
 
@@ -60,19 +61,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 entry_type=dr.DeviceEntryType.SERVICE,
             )
 
-        # Store client for use by platforms
+        # Store client and gateways for use by platforms
         hass.data[DOMAIN][entry.entry_id] = {
             "client": client,
-            "coordinators": {},
             "gateways": network_gateways,
+            "coordinators": {},
+            "network_id": network_id,
+            "devices": [],
         }
 
-        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-        return True
+        # Fetch initial data and create coordinators
+        devices = await client.get_devices_for_network(network_id)
+        for device in devices:
+            coordinator = HafeleUpdateCoordinator(hass, client, device)
+            await coordinator.async_config_entry_first_refresh()
+            hass.data[DOMAIN][entry.entry_id]["coordinators"][device.id] = coordinator
+            hass.data[DOMAIN][entry.entry_id]["devices"].append(device)
 
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     except Exception as error:
         _LOGGER.error("Failed to set up Häfele Connect Mesh: %s", str(error))
         raise ConfigEntryNotReady from error
+    else:
+        return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
