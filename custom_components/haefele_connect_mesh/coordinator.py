@@ -36,6 +36,7 @@ class HafeleUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             _LOGGER,
             name=f"{device.name}",
             update_interval=timedelta(seconds=30),
+            always_update=False,
         )
         self.client = client
         self.device = device
@@ -105,11 +106,10 @@ class HafeleUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
             self.device.update_timestamp()
 
-            # Transform the data to match our expected structure
             transformed_data = {
                 "state": {
-                    "power": status["state"]["power"],
-                    "lightness": status["state"]["lightness"],
+                    k: status["state"][k]
+                    for k in ["power", "lightness", "lastLightness"]
                 }
             }
 

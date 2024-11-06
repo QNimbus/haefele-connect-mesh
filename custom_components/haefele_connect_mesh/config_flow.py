@@ -14,7 +14,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import DOMAIN, CONF_NETWORK_ID, CONF_IMPORT_GROUPS
+from .const import DOMAIN, CONF_NETWORK_ID
 from .api.client import HafeleClient
 from .exceptions import HafeleAPIError
 
@@ -45,17 +45,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not networks:
                 return False, "no_networks_found"
 
-            # Get device and group counts for each network
+            # Get device counts for each network
             self._networks = []
             for network in networks:
                 devices = await client.get_devices_for_network(network.id)
-                groups = network.get_groups()
                 self._networks.append(
                     {
                         "id": network.id,
                         "name": network.name,
                         "device_count": len(devices),
-                        "group_count": len(groups),
                     }
                 )
             return True, None
@@ -112,7 +110,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data={
                         CONF_API_TOKEN: self._api_token,
                         CONF_NETWORK_ID: network_id,
-                        CONF_IMPORT_GROUPS: user_input.get(CONF_IMPORT_GROUPS, False),
                     },
                 )
 
@@ -120,18 +117,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Create network options with placeholders for translation
         network_options = {
-            net["id"]: f"{net['name']} ({net['device_count']} / {net['group_count']})"
+            net["id"]: f"{net['name']} ({net['device_count']})"
             for net in self._networks
         }
 
         network_schema = {
             vol.Required(CONF_NETWORK_ID): vol.In(network_options),
-            # vol.Optional(CONF_IMPORT_GROUPS, default=False): bool,
         }
 
         placeholders = {
             "device_count": str(sum(net["device_count"] for net in self._networks)),
-            "group_count": str(sum(net["group_count"] for net in self._networks)),
         }
 
         return self.async_show_form(

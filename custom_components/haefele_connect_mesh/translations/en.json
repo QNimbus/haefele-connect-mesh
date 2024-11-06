@@ -1,30 +1,42 @@
 {
-    "config": {
-        "step": {
-            "user": {
-                "title": "Connect to Häfele Connect Mesh",
-                "data": {
-                    "api_token": "API Token"
-                }
-            },
-            "network": {
-                "title": "Select Network",
-                "description": "Found {device_count} devices and {group_count} groups across all networks.\nSelect a network to continue...",
-                "data": {
-                    "network_id": "Network (devices / groups)",
-                    "import_groups": "Import groups as well"
-                },
-                "data_description": {
-                    "import_groups": "Create entities for groups in Home Assistant"
-                }
-            }
-        },
-        "error": {
-            "cannot_connect": "Failed to connect",
-            "invalid_auth": "Invalid authentication",
-            "no_networks_found": "No networks found",
-            "network_not_found": "Selected network not found",
-            "unknown": "Unexpected error"
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Häfele Connect Mesh",
+        "data": {
+          "api_token": "API Token"
         }
+      },
+      "network": {
+        "title": "Select Network",
+        "description": "Found {device_count} devices across all networks.\nSelect a network to continue...",
+        "data": {
+          "network_id": "Network (Nr. of devices)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "no_networks_found": "No networks found",
+      "network_not_found": "Selected network not found",
+      "unknown": "Unexpected error"
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "last_update_success": {
+        "name": "Last update",
+        "state": {
+          "on": "Success",
+          "off": "Failed"
+        }
+      }
+    },
+    "sensor": {
+      "last_update": {
+        "name": "Last update"
+      }
+    }
+  }
 }
