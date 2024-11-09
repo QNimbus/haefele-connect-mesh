@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.const import EntityCategory
 
 from .const import DOMAIN
 from .coordinator import HafeleUpdateCoordinator
@@ -58,6 +59,8 @@ class HaefeleUpdateSuccessSensor(CoordinatorEntity, BinarySensorEntity):
         self._attr_unique_id = f"{device.id}_last_update_success"
         self._attr_has_entity_name = True
         self._attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+        self._attr_entity_registry_enabled_default = False
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     async def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""

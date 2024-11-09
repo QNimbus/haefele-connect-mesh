@@ -26,7 +26,7 @@
   "entity": {
     "binary_sensor": {
       "last_update_success": {
-        "name": "Last update",
+        "name": "Most recent update status",
         "state": {
           "on": "Success",
           "off": "Failed"
@@ -35,7 +35,7 @@
     },
     "sensor": {
       "last_update": {
-        "name": "Last update"
+        "name": "Most recent update"
       }
     }
   }
