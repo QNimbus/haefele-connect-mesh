@@ -1,8 +1,12 @@
 name: Validate
 
 on:
-  push: 
+  push:
+    branches:
+      - main
   pull_request:
+    branches:
+      - main
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
@@ -10,6 +14,7 @@ on:
 jobs:
   validate-hacs:
     runs-on: "ubuntu-latest"
+    if: github.event_name != 'schedule' || github.ref == 'refs/heads/main'
     steps:
       - name: HACS validation
         uses: "hacs/action@main"

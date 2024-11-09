@@ -12,6 +12,20 @@ on:
           - patch
           - minor
           - major
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - beta
+          - alpha
+      prerelease_number:
+        description: 'Prerelease number (required for alpha/beta)'
+        required: false
+        default: '1'
+        type: string
 
 jobs:
   release:
@@ -40,17 +54,28 @@ jobs:
           # Read current version from manifest.json
           CURRENT_VERSION=$(python -c "import json; print(json.load(open('custom_components/haefele_connect_mesh/manifest.json'))['version'])")
           
-          # Calculate new version based on increment type
+          # Calculate new version based on increment type and release type
           NEW_VERSION=$(python -c "
           import semver
           current = semver.Version.parse('$CURRENT_VERSION')
           increment = '${{ github.event.inputs.version_increment }}'
+          release_type = '${{ github.event.inputs.release_type }}'
+          prerelease_num = '${{ github.event.inputs.prerelease_number }}'
+          
+          # First bump the version according to increment type
           if increment == 'major':
               new = current.bump_major()
           elif increment == 'minor':
               new = current.bump_minor()
           else:
               new = current.bump_patch()
+          
+          # Then add prerelease identifier if needed
+          if release_type == 'alpha':
+              new = semver.Version(major=new.major, minor=new.minor, patch=new.patch, prerelease=f'alpha.{prerelease_num}')
+          elif release_type == 'beta':
+              new = semver.Version(major=new.major, minor=new.minor, patch=new.patch, prerelease=f'beta.{prerelease_num}')
+          
           print(str(new))
           ")
           
@@ -64,6 +89,7 @@ jobs:
           
           # Set output variables
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "is_prerelease=${{ github.event.inputs.release_type != 'stable' }}" >> $GITHUB_OUTPUT
           echo "Version updated from $CURRENT_VERSION to $NEW_VERSION"
 
       - name: Commit changes
@@ -87,5 +113,5 @@ jobs:
           tag_name: v${{ steps.version.outputs.new_version }}
           name: v${{ steps.version.outputs.new_version }}
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.version.outputs.is_prerelease == 'true' }}
           generate_release_notes: true 
