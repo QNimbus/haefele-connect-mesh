@@ -59,6 +59,10 @@ class HaefeleUpdateSuccessSensor(CoordinatorEntity, BinarySensorEntity):
         self._attr_has_entity_name = True
         self._attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
+    async def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        return super()._handle_coordinator_update()
+
     @property
     def device_info(self) -> DeviceInfo:
         """Return device info."""

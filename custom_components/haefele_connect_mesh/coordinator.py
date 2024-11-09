@@ -82,6 +82,10 @@ class HafeleUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         finally:
             self._device_check_task = None
 
+    async def _async_setup(self) -> None:
+        """Perform one-time setup tasks."""
+        pass
+
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data via library."""
         try:

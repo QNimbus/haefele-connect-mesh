@@ -24,6 +24,8 @@ PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.SENSOR, Platform.BINARY_SE
 
 CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
 
+PARALLEL_UPDATES = 0
+
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the Häfele Connect Mesh component."""
