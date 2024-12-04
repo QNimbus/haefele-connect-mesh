@@ -9,10 +9,19 @@
 
 A Home Assistant custom integration for Häfele Connect Mesh devices. This integration allows you to control Häfele smart devices through Home Assistant.
 
+## Update (04-12-2024) 🎊
+
+I'm excited to share some great news regarding the Häfele Connect Mesh integration! Recently, I had the opportunity to connect with Häfele, and I'm delighted to report that they are not only aware of this project but are also highly supportive of Open Source Initiative (OSI) principles and open-source development as a whole. Häfele recognizes the importance of community-driven platforms like Home Assistant and is eager to see seamless integrations that benefit both their customers and the broader open-source community.
+
+To support the development and testing of this integration, Häfele has generously provided me with a selection of their hardware. This will enable me to expand the capabilities of the Häfele Home Assistant integration and ensure broader compatibility with their product lineup.
+
+You can expect to see more features, enhanced stability, and support for additional Häfele devices in the coming months as I put this hardware to work. Stay tuned for updates!
+
 ## Supported Devices
 
 Currently, this integration has been tested with:
 - Häfele LED lights (dimmable)
+- Power socket (Häfele, LEDVance or Jung)
 
 While the integration includes support for color temperature and RGB/HSL capable lights, as well as other device types (switches, sensors, etc.), these features are currently **untested** as I don't have access to these device types.
 

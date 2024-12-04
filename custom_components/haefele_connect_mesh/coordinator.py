@@ -96,6 +96,18 @@ class HafeleUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             )
             status = await self.client.get_device_status(self.device.id)
 
+            # Transform status data based on device type
+            transformed_data = {"state": {}}
+            
+            # Get the power state for all device types
+            if "power" in status["state"]:
+                transformed_data["state"]["power"] = status["state"]["power"]
+            
+            # Add lightness only for light devices
+            if self.device.is_light and "lightness" in status["state"]:
+                transformed_data["state"]["lightness"] = status["state"]["lightness"]
+                transformed_data["state"]["lastLightness"] = status["state"].get("lastLightness", 0)
+
             # Check if it's time to update device details and no check is currently running
             now = datetime.now()
             if (
@@ -103,19 +115,11 @@ class HafeleUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 and self._device_check_task is None
             ):
                 self._last_device_check = now
-                # Use Home Assistant's task creation method instead of asyncio directly
                 self._device_check_task = self.hass.async_create_task(
                     self._check_device_details()
                 )
 
             self.device.update_timestamp()
-
-            transformed_data = {
-                "state": {
-                    k: status["state"][k]
-                    for k in ["power", "lightness", "lastLightness"]
-                }
-            }
 
             _LOGGER.debug(
                 "Processed status for device %s: %s", self.device.name, transformed_data

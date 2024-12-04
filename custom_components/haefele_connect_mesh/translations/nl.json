@@ -37,6 +37,11 @@
       "last_update": {
         "name": "Meest recente update"
       }
+    },
+    "switch": {
+      "socket": {
+        "name": "Stopcontact"
+      }
     }
   }
 }

@@ -127,6 +127,30 @@ class DeviceType(Enum):
             for prefix in ["com.haefele.led.rgb", "com.generic.led.rgb"]
         )
 
+    @property
+    def is_socket(self) -> bool:
+        """Check if the device type is a socket."""
+        return any(
+            self.value.startswith(prefix)
+            for prefix in ["de.ledvance.socket", "com.haefele.socket", "de.jung.socket"]
+        )
+
+    @property
+    def manufacturer(self) -> str:
+        """Get the manufacturer based on the device type prefix."""
+        if self.value.startswith("de.ledvance."):
+            return "LEDVANCE"
+        elif self.value.startswith("de.jung."):
+            return "JUNG"
+        elif self.value.startswith("de.nimbus."):
+            return "Nimbus"
+        elif self.value.startswith("com.haefele."):
+            return "Häfele"
+        elif self.value.startswith("com.generic."):
+            return "Generic"
+        else:
+            return "Unknown"
+
     @classmethod
     def from_str(cls, type_str: str) -> "DeviceType":
         """Create DeviceType from string value."""
@@ -358,3 +382,12 @@ class Device:
     def supports_hsl(self) -> bool:
         """Check if the device supports RGB color."""
         return self._type.supports_hsl
+
+    @property
+    def is_socket(self) -> bool:
+        """Check if the device is a socket.
+
+        Returns:
+            bool: True if device is a socket type
+        """
+        return self._type.is_socket

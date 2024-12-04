@@ -37,6 +37,11 @@
       "last_update": {
         "name": "Dernière mise à jour"
       }
+    },
+    "switch": {
+      "socket": {
+        "name": "Prise"
+      }
     }
   }
 }

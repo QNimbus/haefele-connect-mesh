@@ -79,7 +79,7 @@ class HaefeleUpdateSuccessSensor(CoordinatorEntity, BinarySensorEntity):
         return DeviceInfo(
             identifiers={(DOMAIN, self._device.id)},
             name=self._device.name,
-            manufacturer="Häfele",
+            manufacturer=self._device.type.manufacturer,
             model=self._device.type.value.split(".")[-1].capitalize(),
             sw_version=self._device.bootloader_version,
             via_device=(DOMAIN, gateway_id) if gateway_id else None,

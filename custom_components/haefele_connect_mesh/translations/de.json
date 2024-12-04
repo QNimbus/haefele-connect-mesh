@@ -37,6 +37,11 @@
       "last_update": {
         "name": "Aktuellste Aktualisierung"
       }
+    },
+    "switch": {
+      "socket": {
+        "name": "Steckdose"
+      }
     }
   }
 }

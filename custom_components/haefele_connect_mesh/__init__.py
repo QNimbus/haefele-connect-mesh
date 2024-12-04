@@ -20,7 +20,7 @@ from .coordinator import HafeleUpdateCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "haefele_connect_mesh"
-PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.SENSOR, Platform.BINARY_SENSOR]
+PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.SWITCH]
 
 CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
 

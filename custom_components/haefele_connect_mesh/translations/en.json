@@ -37,6 +37,11 @@
       "last_update": {
         "name": "Most recent update"
       }
+    },
+    "switch": {
+      "socket": {
+        "name": "Socket"
+      }
     }
   }
 }
