@@ -9,10 +9,12 @@ import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 
 from .api.client import HafeleClient
 from .coordinator import HafeleUpdateCoordinator
@@ -95,3 +97,47 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id, None)
 
     return unload_ok
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, config_entry: ConfigEntry, device_entry: DeviceEntry
+) -> bool:
+    """Remove a device from the integration.
+    
+    This function is called when a user initiates device deletion from the UI.
+    We need to:
+    1. Find the device in our data structure
+    2. Remove it from any coordinators
+    3. Clean up any device-specific data
+    """
+    try:
+        # Get the device ID from the device entry identifiers
+        device_id = None
+        for identifier in device_entry.identifiers:
+            if identifier[0] == DOMAIN:
+                device_id = identifier[1]
+                break
+                
+        if not device_id:
+            return False
+
+        # Get our integration data
+        client = hass.data[DOMAIN][config_entry.entry_id]["client"]
+        coordinators = hass.data[DOMAIN][config_entry.entry_id]["coordinators"]
+        devices = hass.data[DOMAIN][config_entry.entry_id]["devices"]
+
+        # Remove the coordinator for this device if it exists
+        if device_id in coordinators:
+            coordinator = coordinators.pop(device_id)
+            # Cancel any pending updates
+            coordinator.async_shutdown()
+
+        # Remove the device from our devices list
+        devices[:] = [d for d in devices if d.id != device_id]
+
+        _LOGGER.info("Successfully removed device %s", device_id)
+        return True
+
+    except Exception as ex:
+        _LOGGER.error("Error removing device %s: %s", device_entry.id, str(ex))
+        return False
