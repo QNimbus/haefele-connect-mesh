@@ -84,7 +84,7 @@ jobs:
           import json
           manifest = json.load(open('custom_components/haefele_connect_mesh/manifest.json'))
           manifest['version'] = '$NEW_VERSION'
-          json.dump(manifest, open('custom_components/haefele_connect_mesh/manifest.json', 'w'), indent=2)
+          json.dump(manifest, open('custom_components/haefele_connect_mesh/manifest.json', 'w'), indent=2, ensure_ascii=False)
           "
           
           # Set output variables
