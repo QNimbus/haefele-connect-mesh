@@ -31,16 +31,42 @@ async def async_setup_entry(
     coordinators = hass.data[DOMAIN][config_entry.entry_id]["coordinators"]
     devices = hass.data[DOMAIN][config_entry.entry_id]["devices"]
 
-    # Create switch entities for socket devices
+    # Log available devices and their types
+    _LOGGER.debug(
+        "Setting up switches. Available devices: %s",
+        [(d.id, d.type, d.is_socket) for d in devices]
+    )
+
     entities = []
     for device in devices:
-        if device.is_socket:
-            coordinator = coordinators[device.id]
-            entities.append(
-                HaefeleConnectMeshSwitch(coordinator, device, config_entry.entry_id)
-            )
+        if device.id in coordinators and device.is_socket:
+            try:
+                coordinator = coordinators[device.id]
+                _LOGGER.debug(
+                    "Creating switch entity for device %s (coordinator data: %s)",
+                    device.id,
+                    coordinator.data
+                )
+                
+                entities.append(
+                    HaefeleConnectMeshSwitch(coordinator, device, config_entry.entry_id)
+                )
+            except Exception as err:
+                _LOGGER.error(
+                    "Error creating switch entity for device %s: %s",
+                    device.id,
+                    str(err)
+                )
+                continue
 
-    async_add_entities(entities)
+    if entities:
+        async_add_entities(entities)
+    else:
+        _LOGGER.debug(
+            "No switch entities created. Devices: %s, Coordinators: %s",
+            devices,
+            coordinators.keys()
+        )
 
 
 class HaefeleConnectMeshSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
@@ -83,20 +109,24 @@ class HaefeleConnectMeshSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        # First check coordinator's availability
-        if not self.coordinator.last_update_success:
+        try:
+            # First check coordinator's availability
+            if not self.coordinator.last_update_success:
+                return False
+
+            # Then check data validity
+            is_available = (
+                self.coordinator.data is not None
+                and isinstance(self.coordinator.data.get("state"), dict)
+                and "power" in self.coordinator.data["state"]
+                # Check if last update was within reasonable time (2 minutes)
+                and (datetime.now(UTC) - self._device.last_updated).total_seconds() < 120
+            )
+
+            return is_available
+        except Exception as err:
+            _LOGGER.error("Error checking availability for %s: %s", self.name, str(err))
             return False
-
-        # Then check data validity
-        is_available = (
-            self.coordinator.data is not None
-            and isinstance(self.coordinator.data.get("state"), dict)
-            and "power" in self.coordinator.data["state"]
-            # Check if last update was within reasonable time (2 minutes)
-            and (datetime.now(UTC) - self._device.last_updated).total_seconds() < 120
-        )
-
-        return is_available
 
     @property
     def is_on(self) -> bool | None:
@@ -127,7 +157,19 @@ class HaefeleConnectMeshSwitch(CoordinatorEntity, SwitchEntity, RestoreEntity):
         """Run when entity about to be added to hass."""
         await super().async_added_to_hass()
 
-        # Restore state if we don't have fresh data
-        if self.coordinator.data is None:
+        # Try to get initial state
+        try:
+            status = await self.coordinator.client.get_device_status(self._device.id)
+            self.coordinator.data = {"state": status}
+            self.async_write_ha_state()
+        except Exception as err:
+            _LOGGER.warning(
+                "Could not get initial state for %s: %s",
+                self._device.id,
+                str(err)
+            )
+            
+            # Restore state if we don't have fresh data
             if last_state := await self.async_get_last_state():
-                self._attr_is_on = last_state.state == "on" 
+                self._attr_is_on = last_state.state == "on"
+  

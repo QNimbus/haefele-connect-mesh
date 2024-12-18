@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Mapping
 
 import voluptuous as vol
 import aiohttp
@@ -11,10 +11,10 @@ import aiohttp
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_TOKEN
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import DOMAIN, CONF_NETWORK_ID
+from .const import DOMAIN, CONF_NETWORK_ID, CONF_SCAN_INTERVAL, CONF_NEW_DEVICES_CHECK_INTERVAL, CONF_DEVICE_DETAILS_UPDATE_INTERVAL, DEFAULT_SCAN_INTERVAL, DEFAULT_NEW_DEVICES_CHECK_INTERVAL, DEFAULT_DEVICE_DETAILS_UPDATE_INTERVAL
 from .api.client import HafeleClient
 from .exceptions import HafeleAPIError
 
@@ -134,4 +134,101 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(network_schema),
             errors=errors,
             description_placeholders=placeholders,
+        )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: ConfigEntry,
+    ) -> HafeleOptionsFlowHandler:
+        """Create the options flow."""
+        return HafeleOptionsFlowHandler()
+
+    async def async_migrate_entry(self, config_entry: ConfigEntry) -> bool:
+        """Migrate old entry."""
+        _LOGGER.debug("Migrating from version %s", config_entry.version)
+
+        if config_entry.version == 1:
+            # No migration needed yet
+            return True
+
+        return False
+
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
+        """Handle reauthorization request."""
+        self._reauth_entry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"]
+        )
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle reauthorization confirmation."""
+        errors = {}
+        
+        if user_input is not None:
+            api_token = user_input[CONF_API_TOKEN]
+            valid, error = await self._validate_api_token(api_token)
+
+            if valid:
+                self.hass.config_entries.async_update_entry(
+                    self._reauth_entry,
+                    data={**self._reauth_entry.data, CONF_API_TOKEN: api_token},
+                )
+                await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
+                return self.async_abort(reason="reauth_successful")
+
+            errors["base"] = error
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({
+                vol.Required(CONF_API_TOKEN): str,
+            }),
+            errors=errors,
+            description_placeholders={
+                "error_detail": errors.get("base", "")
+            },
+        )
+
+
+class HafeleOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle Häfele Connect Mesh options."""
+
+    def __init__(self) -> None:
+        """Initialize options flow."""
+        self._conf_app_id: str | None = None
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        options = {
+            vol.Optional(
+                CONF_SCAN_INTERVAL,
+                default=self.config_entry.options.get(
+                    CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                ),
+            ): vol.All(vol.Coerce(int), vol.Range(min=10, max=300)),
+            vol.Optional(
+                CONF_NEW_DEVICES_CHECK_INTERVAL,
+                default=self.config_entry.options.get(
+                    CONF_NEW_DEVICES_CHECK_INTERVAL, DEFAULT_NEW_DEVICES_CHECK_INTERVAL
+                ),
+            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+            vol.Optional(
+                CONF_DEVICE_DETAILS_UPDATE_INTERVAL,
+                default=self.config_entry.options.get(
+                    CONF_DEVICE_DETAILS_UPDATE_INTERVAL, DEFAULT_DEVICE_DETAILS_UPDATE_INTERVAL
+                ),
+            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+        }
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(options),
         )

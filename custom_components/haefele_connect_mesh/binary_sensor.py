@@ -33,12 +33,14 @@ async def async_setup_entry(
 
     entities = []
     for device in devices:
-        coordinator = coordinators[device.id]
-        entities.append(
-            HaefeleUpdateSuccessSensor(coordinator, device, config_entry.entry_id)
-        )
+        if device.id in coordinators:
+            coordinator = coordinators[device.id]
+            entities.append(
+                HaefeleUpdateSuccessSensor(coordinator, device, config_entry.entry_id)
+            )
 
-    async_add_entities(entities)
+    if entities:
+        async_add_entities(entities)
 
 
 class HaefeleUpdateSuccessSensor(CoordinatorEntity, BinarySensorEntity):

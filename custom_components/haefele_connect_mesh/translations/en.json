@@ -13,6 +13,13 @@
         "data": {
           "network_id": "Network (Nr. of devices)"
         }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate Integration",
+        "description": "The Häfele Connect Mesh integration needs to reauthenticate your account",
+        "data": {
+          "api_token": "API Token"
+        }
       }
     },
     "error": {
@@ -21,6 +28,9 @@
       "no_networks_found": "No networks found",
       "network_not_found": "Selected network not found",
       "unknown": "Unexpected error"
+    },
+    "abort": {
+      "reauth_successful": "Reauthentication was successful"
     }
   },
   "entity": {
@@ -41,6 +51,19 @@
     "switch": {
       "socket": {
         "name": "Socket"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Häfele Connect Mesh Options",
+        "description": "Configure update intervals",
+        "data": {
+          "scan_interval": "Status update interval (seconds)",
+          "new_devices_check_interval": "Check for new devices interval (minutes)",
+          "device_details_update_interval": "Device details update interval (minutes)"
+        }
       }
     }
   }

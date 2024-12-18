@@ -54,25 +54,19 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Häfele Connect Mesh Light platform."""
-    network_id = config_entry.data["network_id"]
-    client: HafeleClient = hass.data[DOMAIN][config_entry.entry_id]["client"]
     coordinators = hass.data[DOMAIN][config_entry.entry_id]["coordinators"]
+    devices = hass.data[DOMAIN][config_entry.entry_id]["devices"]
 
-    try:
-        devices = hass.data[DOMAIN][config_entry.entry_id]["devices"]
-        lights = [device for device in devices if device.is_light]
-
-        # Create light entities
-        entities = [
-            HaefeleConnectMeshLight(
-                coordinators[light.id], light, config_entry.entry_id
+    entities = []
+    for device in devices:
+        if device.id in coordinators and device.is_light:
+            coordinator = coordinators[device.id]
+            entities.append(
+                HaefeleConnectMeshLight(coordinator, device, config_entry.entry_id)
             )
-            for light in lights
-        ]
-        async_add_entities(entities)
 
-    except Exception as ex:
-        _LOGGER.error("Error setting up Häfele lights: %s", str(ex))
+    if entities:
+        async_add_entities(entities)
 
 
 class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
@@ -90,7 +84,7 @@ class HaefeleConnectMeshLight(CoordinatorEntity, LightEntity, RestoreEntity):
         self._device = device
         self._entry_id = entry_id
         self._attr_unique_id = f"{device.id}_light"
-        self._attr_name = device.name
+        self._attr_name = None
         self._attr_has_entity_name = True
 
         # Set color modes based on device capabilities
