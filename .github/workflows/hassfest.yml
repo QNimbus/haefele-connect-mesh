@@ -8,13 +8,13 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * 0'    # every Sunday at midnight UTC
   workflow_dispatch:
 
 jobs:
   validate:
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-latest
     if: github.event_name != 'schedule' || github.ref == 'refs/heads/main'
     steps:
-      - uses: "actions/checkout@v4"
-      - uses: "home-assistant/actions/hassfest@master"
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
